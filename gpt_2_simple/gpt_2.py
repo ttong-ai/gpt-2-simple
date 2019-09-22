@@ -36,10 +36,10 @@ def download_file_with_progress(url_base, sub_dir, model_name, file_name):
     file_name : str
         name of file to get e.g. "hparams.json"
     sub_dir: str
-        subdirectory inside which to get and copy locally eg. "models/124M" 
+        subdirectory inside which to get and copy locally eg. "models/124M"
         no trailing slash
     url_base : str
-        Start of URL location specifying server and any base directories no 
+        Start of URL location specifying server and any base directories no
         trailing slash
         e.g. "https://storage.googleapis.com/gpt-2"
     """
@@ -54,7 +54,7 @@ def download_file_with_progress(url_base, sub_dir, model_name, file_name):
             for chunk in r.iter_content(chunk_size=DOWNLOAD_CHUNK_SIZE):
                 f.write(chunk)
                 pbar.update(DOWNLOAD_CHUNK_SIZE)
-   
+
 
 def download_gpt2(model_dir='models', model_name='124M'):
     """Downloads the GPT-2 model into the current directory
@@ -66,8 +66,8 @@ def download_gpt2(model_dir='models', model_name='124M'):
         parent directory of model to download
 
     model_name : str
-        name of the GPT-2 model to download. 
-        As of 22 May 2019 one of "124M" or "355M" but may later include other 
+        name of the GPT-2 model to download.
+        As of 22 May 2019 one of "124M" or "355M" but may later include other
         model sizes
 
     Adapted from https://github.com/openai/gpt-2/blob/master/download_model.py
@@ -101,7 +101,7 @@ def start_tf_sess(threads=-1, server=None):
 
     if server is not None:
         return tf.compat.v1.Session(target=server.target, config=config)
-    
+
     return tf.compat.v1.Session(config=config)
 
 
@@ -137,7 +137,8 @@ def finetune(sess,
              use_memory_saving_gradients=False,
              only_train_transformer_layers=False,
              optimizer='adam',
-             overwrite=False):
+             overwrite=False,
+             mixed_precision=False):
     """Finetunes the model on the given dataset.
 
     Adapted from https://github.com/nshepperd/gpt-2/blob/finetuning/train.py.
@@ -201,6 +202,32 @@ def finetune(sess,
         opt = tf.compat.v1.train.AdamOptimizer(learning_rate=learning_rate)
     elif optimizer == 'sgd':
         opt = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=learning_rate)
+
+    def mp_check_tf_version():
+        # check TensorFlow >= 1.14
+        tf_version_list = tf.__version__.split(".")
+        if int(tf_version_list[0]) < 2:
+            return int(tf_version_list[1]) >= 14
+
+    def mp_check_tensor_core_gpu_present():
+        from tensorflow.python.client import device_lib
+        # check Compute Capability >= 7.0
+        local_device_protos = device_lib.list_local_devices()
+        for line in local_device_protos:
+            if "compute capability" in str(line):
+                compute_capability = float(line.physical_device_desc.split("compute capability: ")[-1])
+                if compute_capability >= 7.0:
+                    return True
+
+    if mixed_precision and mp_check_tf_version() and mp_check_tensor_core_gpu_present():
+        if isinstance(opt, tf.keras.optimizers.Optimizer) or isinstance(opt, tf.compat.v1.train.Optimizer):
+            opt = tf.compat.v1.train.experimental.enable_mixed_precision_graph_rewrite(opt)
+        else:
+            mixed_precision = False
+    else:
+        mixed_precision = False
+
+    print('Mixed precision enabled: %s' % mixed_precision)
 
     if accumulate_gradients > 1:
         if use_memory_saving_gradients:
@@ -305,7 +332,7 @@ def finetune(sess,
 
     if steps:
         steps = int(steps)
-    
+
     try:
         while True:
             if steps > 0 and counter == (counter_base + steps):
@@ -645,7 +672,7 @@ def cmd():
     )
 
     # Explicit arguments
-    
+
     parser.add_argument(
         '--mode', help='Mode for using the CLI (either "finetune" or "generate") [Required]', nargs='?')
     parser.add_argument(
@@ -684,6 +711,9 @@ def cmd():
     parser.add_argument(
         '--overwrite',  help="[finetune] Overwrite existing model when continuing training",
         nargs='?', default=False, type=lambda x: (str(x).lower() == 'true'))
+    parser.add_argument(
+        '--mixed_precision', help="[finetune] Enable Mixed Precision",
+        default=False, type=lambda x: (str(x).lower() == 'true'))
     parser.add_argument(
         '--nfiles',  help="[generate] How many files to generate.",
         nargs='?', default=1, type=int)
@@ -741,7 +771,8 @@ def cmd():
                      save_every=args.save_every,
                      print_every=args.print_every,
                      optimizer=args.optimizer,
-                     overwrite=args.overwrite)
+                     overwrite=args.overwrite,
+                     mixed_precision=args.mixed_precision)
     if args.mode == "generate":
         cmd_generate(nfiles=args.nfiles, nsamples=args.nsamples,
                      folder=args.folder, length=args.length,
@@ -755,7 +786,7 @@ def cmd():
 
 def cmd_finetune(dataset, run_name, checkpoint_dir, model_name, model_dir, steps,
                  restore_from, sample_every,
-                 save_every, print_every, optimizer, overwrite):
+                 save_every, print_every, optimizer, overwrite, mixed_precision):
     """Wrapper script for finetuning the model via the CLI."""
 
     if not is_gpt2_downloaded(model_dir=model_dir, model_name=model_name):
@@ -770,7 +801,8 @@ def cmd_finetune(dataset, run_name, checkpoint_dir, model_name, model_dir, steps
              sample_every=sample_every, save_every=save_every,
              print_every=print_every,
              optimizer=optimizer,
-             overwrite=overwrite)
+             overwrite=overwrite,
+             mixed_precision=mixed_precision)
 
 
 def cmd_generate(nfiles, nsamples, folder,
