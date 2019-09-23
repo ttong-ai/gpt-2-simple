@@ -9,11 +9,11 @@ class HParams():
         self.n_embd = n_embd
         self.n_head = n_head
         self.n_layer = n_layer
-        
+
     def override_from_dict(self, param_dict):
         try:
             self.n_vocab = param_dict['n_vocab']
-        except: 
+        except:
             pass
         try:
             self.n_ctx = param_dict['n_ctx']
@@ -192,8 +192,7 @@ def model(hparams, X, past=None, scope='model', reuse=False):
         assert len(pasts) == hparams.n_layer
         for layer, past in enumerate(pasts):
             h, present = block(h, 'h%d' % layer, past=past, hparams=hparams)
-            if layer == 10:
-                tf.compat.v1.add_to_collection('checkpoints', h)
+            tf.compat.v1.add_to_collection('checkpoints', h)
             presents.append(present)
         results['present'] = tf.stack(presents, axis=1)
         h = norm(h, 'ln_f')
