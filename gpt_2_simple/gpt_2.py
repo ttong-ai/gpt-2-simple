@@ -229,6 +229,10 @@ def finetune(sess,
 
     print('Mixed precision enabled: %s' % mixed_precision)
 
+    # Fix warning: https://github.com/tensorflow/tensorflow/blob/233d3d/tensorflow/python/training/experimental/mixed_precision.py#L355-L357
+    if sess is None:
+        sess = start_tf_sess()
+
     if accumulate_gradients > 1:
         if use_memory_saving_gradients:
             exit("Memory saving gradients are not implemented for gradient accumulation yet.")
