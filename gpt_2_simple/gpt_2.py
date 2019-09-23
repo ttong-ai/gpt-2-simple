@@ -796,7 +796,10 @@ def cmd_finetune(dataset, run_name, checkpoint_dir, model_name, model_dir, steps
     if not is_gpt2_downloaded(model_dir=model_dir, model_name=model_name):
         download_gpt2(model_dir=model_dir, model_name=model_name)
 
-    sess = start_tf_sess()
+    sess = None
+    if not mixed_precision:
+        sess = start_tf_sess()
+
     finetune(sess, dataset=dataset, run_name=run_name,
              checkpoint_dir=checkpoint_dir,
              model_name=model_name,
