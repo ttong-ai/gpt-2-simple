@@ -20,6 +20,8 @@ try:
 except:
     pass
 
+from tensor2tensor.utils.adafactor import AdafactorOptimizer
+
 from gpt_2_simple.src import model, sample, encoder, memory_saving_gradients
 from gpt_2_simple.src.load_dataset import load_dataset, Sampler
 from gpt_2_simple.src.accumulate import AccumulatingOptimizer
@@ -205,6 +207,8 @@ def finetune(sess,
         opt = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=learning_rate)
     elif optimizer == 'sm3':
         opt = SM3Optimizer(learning_rate=learning_rate, momentum=0.9)
+    elif optimizer == 'adafactor':
+        opt = AdafactorOptimizer(learning_rate=learning_rate)
 
     def mp_check_tf_version():
         # check TensorFlow >= 1.14
@@ -713,7 +717,7 @@ def cmd():
         '--print_every',  help="[finetune] After how many steps to print progress",
         nargs='?', default=10, type=int)
     parser.add_argument(
-        '--optimizer',  help="[finetune] Optimizer to use for finetuning (adam or sgd or sm3)",
+        '--optimizer',  help="[finetune] Optimizer to use for finetuning (adam or sgd or sm3 or adafactor)",
         nargs='?', default='adam')
     parser.add_argument(
         '--overwrite',  help="[finetune] Overwrite existing model when continuing training",
