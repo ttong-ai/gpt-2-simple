@@ -49,8 +49,7 @@ def sample_sequence(*, hparams, length, start_token=None,
 
     def step(hparams, tokens, past=None):
         lm_output = model.model(hparams=hparams, X=tokens,
-                                past=past, reuse=tf.compat.v1.AUTO_REUSE,
-                                is_sampling=True)
+                                past=past, reuse=tf.compat.v1.AUTO_REUSE)
 
         logits = lm_output['logits'][:, :, :hparams.n_vocab]
         presents = lm_output['present']

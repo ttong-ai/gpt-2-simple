@@ -96,7 +96,7 @@ def attention_mask(nd, ns, *, dtype):
     return tf.cast(m, dtype)
 
 
-def attn(x, scope, n_state, *, past, hparams, is_sampling):
+def attn(x, scope, n_state, *, past, hparams):
     assert x.shape.ndims == 3  # Should be [batch, sequence, features]
     assert n_state % hparams.n_head == 0
     if past is not None:
@@ -131,9 +131,7 @@ def attn(x, scope, n_state, *, past, hparams, is_sampling):
     with tf.compat.v1.variable_scope(scope):
         c = conv1d(x, 'c_attn', n_state*3)
         q, k, v = map(split_heads, tf.split(c, 3, axis=2))
-        present = None
-        if is_sampling:
-            present = tf.stack([k, v], axis=1)
+        present = tf.stack([k, v], axis=1)
         if past is not None:
             pk, pv = tf.unstack(past, axis=1)
             k = tf.concat([pk, k], axis=-2)
@@ -152,10 +150,10 @@ def mlp(x, scope, n_state, *, hparams):
         return h2
 
 
-def block(x, scope, *, past, hparams, is_sampling):
+def block(x, scope, *, past, hparams):
     with tf.compat.v1.variable_scope(scope):
         nx = x.shape[-1].value
-        a, present = attn(norm(x, 'ln_1'), 'attn', nx, past=past, hparams=hparams, is_sampling=is_sampling)
+        a, present = attn(norm(x, 'ln_1'), 'attn', nx, past=past, hparams=hparams)
         x = x + a
         m = mlp(norm(x, 'ln_2'), 'mlp', nx*4, hparams=hparams)
         x = x + m
@@ -176,7 +174,7 @@ def positions_for(tokens, past_length):
     return expand_tile(past_length + tf.range(nsteps), batch_size)
 
 
-def model(hparams, X, past=None, scope='model', reuse=False, is_sampling=False):
+def model(hparams, X, past=None, scope='model', reuse=False):
     with tf.compat.v1.variable_scope(scope, reuse=reuse):
         results = {}
         batch, sequence = shape_list(X)
@@ -193,13 +191,11 @@ def model(hparams, X, past=None, scope='model', reuse=False, is_sampling=False):
         pasts = tf.unstack(past, axis=1) if past is not None else [None] * hparams.n_layer
         assert len(pasts) == hparams.n_layer
         for layer, past in enumerate(pasts):
-            h, present = block(h, 'h%d' % layer, past=past, hparams=hparams, is_sampling=is_sampling)
-            tf.compat.v1.add_to_collection('checkpoints', h)
+            h, present = block(h, 'h%d' % layer, past=past, hparams=hparams)
 
-            if is_sampling:
-                presents.append(present)
-        if is_sampling:
-            results['present'] = tf.stack(presents, axis=1)
+            tf.compat.v1.add_to_collection('checkpoints', h)
+            presents.append(present)
+        results['present'] = tf.stack(presents, axis=1)
         h = norm(h, 'ln_f')
 
         # Language model loss.  Do tokens <n predict token n?
