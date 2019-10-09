@@ -312,7 +312,7 @@ def reduce_rms(x):
 
 """https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/layers/common_layers.py#L3449-L3466"""
 def cast_like(x, y):
-      """Cast x to y's dtype, if necessary."""
+  """Cast x to y's dtype, if necessary."""
   x = tf.convert_to_tensor(x)
   y = tf.convert_to_tensor(y)
 
@@ -334,7 +334,7 @@ def cast_like(x, y):
 
 """https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/utils/quantization.py#L137-L157"""
 def noise_from_step_num():
-      """Quantization noise equal to (phi * (step_num + 1)) mod 1.0.
+  """Quantization noise equal to (phi * (step_num + 1)) mod 1.0.
   Not using random_uniform here due to a problem on TPU in that random seeds
   are not respected, which may cause the parameters on different replicas
   to go out-of-sync.
@@ -356,7 +356,7 @@ def noise_from_step_num():
 
 """https://github.com/tensorflow/tensor2tensor/blob/master/tensor2tensor/utils/quantization.py#L89-L134"""
 def simulated_quantize(x, num_bits, noise):
-      """Simulate quantization to num_bits bits, with externally-stored scale.
+  """Simulate quantization to num_bits bits, with externally-stored scale.
   num_bits is the number of bits used to store each value.
   noise is a float32 Tensor containing values in [0, 1).
   Each value in noise should take different values across
