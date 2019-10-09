@@ -3,4 +3,3 @@ requests
 tqdm
 numpy
 toposort
-tensor2tensor
