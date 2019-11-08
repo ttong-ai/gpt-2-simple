@@ -148,8 +148,6 @@ def finetune(sess,
     See that file for parameter definitions.
     """
 
-    # assert model_name not in ['774M', '1558M'], "Currently, modern GPUs cannot finetune the 774M GPT-2 model or larger."
-
     SAMPLE_DIR = 'samples'
 
     checkpoint_path = os.path.join(checkpoint_dir, run_name)
