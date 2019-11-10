@@ -619,14 +619,14 @@ def copy_file_to_gdrive(file_path):
     """Copies a file to a mounted Google Drive."""
     is_mounted()
 
-    shutil.copyfile(file_path, "/content/drive/My Drive/" + file_path)
+    shutil.copyfile(file_path, os.path.join("/content/drive/My Drive", file_path))
 
 
 def copy_file_from_gdrive(file_path):
     """Copies a file from a mounted Google Drive."""
     is_mounted()
 
-    shutil.copyfile("/content/drive/My Drive/" + file_path, file_path)
+    shutil.copyfile(os.path.join("/content/drive/My Drive", file_path), file_path)
 
 
 def is_gpt2_downloaded(model_dir='models', model_name='124M'):
